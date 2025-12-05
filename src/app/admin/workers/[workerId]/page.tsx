@@ -2,6 +2,7 @@
 'use client';
 
 import React, { useMemo } from 'react';
+import Link from 'next/link';
 import {
   Card,
   CardContent,
@@ -18,6 +19,7 @@ import { doc, collection, query } from 'firebase/firestore';
 import { useParams } from 'next/navigation';
 import type { Worker, ProductionEntry, AdvancePayment, WorkerExpense } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
+import { cn } from '@/lib/utils';
 
 const formatCurrency = (amount: number) =>
   new Intl.NumberFormat('bn-BD', {
@@ -28,13 +30,15 @@ const formatCurrency = (amount: number) =>
 
 function StatCard({ icon, label, value, valueClassName }: { icon: React.ReactNode, label: string, value: string | number, valueClassName?: string }) {
   return (
-    <div className="flex items-center gap-4 rounded-lg border bg-background p-4 shadow-sm transition-all hover:shadow-md">
-      <div className="rounded-lg bg-muted p-3">{icon}</div>
-      <div>
-        <p className="text-sm text-muted-foreground">{label}</p>
-        <p className={`text-xl font-bold ${valueClassName}`}>{value}</p>
-      </div>
-    </div>
+    <Card className="transition-colors group-hover:border-primary h-full">
+      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+        <CardTitle className="text-sm font-medium">{label}</CardTitle>
+        {icon}
+      </CardHeader>
+      <CardContent>
+        <div className={cn("text-2xl font-bold", valueClassName)}>{value}</div>
+      </CardContent>
+    </Card>
   );
 }
 
@@ -104,11 +108,11 @@ export default function WorkerProfilePage() {
             </CardHeader>
             <CardContent className="space-y-6">
                 <Skeleton className="h-px w-full" />
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                   <Skeleton className="h-20 w-full" />
-                   <Skeleton className="h-20 w-full" />
-                   <Skeleton className="h-20 w-full" />
-                   <Skeleton className="h-20 w-full" />
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                   <Skeleton className="h-24 w-full" />
+                   <Skeleton className="h-24 w-full" />
+                   <Skeleton className="h-24 w-full" />
+                   <Skeleton className="h-24 w-full" />
                 </div>
             </CardContent>
         </Card>
@@ -158,7 +162,7 @@ export default function WorkerProfilePage() {
           <CardHeader>
               <CardTitle>কাজের সারসংক্ষেপ</CardTitle>
           </CardHeader>
-          <CardContent className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <CardContent className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                 {isLoadingStats ? (
                   <>
                     <Skeleton className='h-24' />
@@ -168,27 +172,35 @@ export default function WorkerProfilePage() {
                   </>
                 ) : (
                   <>
-                    <StatCard 
-                        icon={<Scissors className="h-8 w-8 text-primary" />}
-                        label="মোট সেলাই"
-                        value={`${totalProduction.toLocaleString('bn-BD')} পিস`}
-                    />
-                    <StatCard 
-                        icon={<CircleDollarSign className="h-8 w-8 text-primary" />}
-                        label="মোট আয়"
-                        value={formatCurrency(totalEarnings)}
-                    />
-                    <StatCard 
-                        icon={<Wallet2 className="h-8 w-8 text-primary" />}
-                        label="মোট খরচ"
-                        value={formatCurrency(totalExpenses)}
-                    />
-                    <StatCard 
-                        icon={<TakaIcon className="h-8 w-8 text-destructive" />}
-                        label="মোট বকেয়া অগ্রিম"
-                        value={formatCurrency(totalAdvanceDue)}
-                        valueClassName='text-destructive'
-                    />
+                    <Link href="/admin/production" className="transform transition-transform duration-200 hover:scale-105 group">
+                        <StatCard 
+                            icon={<Scissors className="h-6 w-6 text-muted-foreground" />}
+                            label="মোট সেলাই"
+                            value={`${totalProduction.toLocaleString('bn-BD')} পিস`}
+                        />
+                    </Link>
+                    <Link href="/admin/production" className="transform transition-transform duration-200 hover:scale-105 group">
+                        <StatCard 
+                            icon={<CircleDollarSign className="h-6 w-6 text-muted-foreground" />}
+                            label="মোট আয়"
+                            value={formatCurrency(totalEarnings)}
+                        />
+                    </Link>
+                    <Link href="/admin/worker-expenses" className="transform transition-transform duration-200 hover:scale-105 group">
+                        <StatCard 
+                            icon={<Wallet2 className="h-6 w-6 text-muted-foreground" />}
+                            label="মোট খরচ"
+                            value={formatCurrency(totalExpenses)}
+                        />
+                    </Link>
+                    <Link href="/admin/advance-payments" className="transform transition-transform duration-200 hover:scale-105 group">
+                        <StatCard 
+                            icon={<TakaIcon className="h-6 w-6 text-muted-foreground" />}
+                            label="মোট বকেয়া অগ্রিম"
+                            value={formatCurrency(totalAdvanceDue)}
+                            valueClassName='text-destructive'
+                        />
+                    </Link>
                   </>
                 )}
           </CardContent>
