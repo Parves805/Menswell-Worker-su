@@ -27,6 +27,7 @@ import { ProductionEntry, SliderImage, AdvancePayment, WorkerExpense } from '@/l
 import { Skeleton } from '@/components/ui/skeleton';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { TakaIcon } from '@/components/icons';
+import Autoplay from 'embla-carousel-autoplay';
 
 const formatCurrency = (amount: number) =>
   new Intl.NumberFormat('bn-BD', {
@@ -123,7 +124,7 @@ export default function DashboardPage() {
         <CardContent>
           <div className="flex items-center justify-between">
             <div onClick={handleToggleEarnings} className="cursor-pointer">
-              <p className="text-sm">মোট আয়</p>
+              <p className="text-sm">নেট আয়</p>
               {isLoading ? <Skeleton className="h-9 w-36 mt-1 bg-white/20" /> : (
                 <p className="text-3xl font-bold">
                     {showEarnings ? formatCurrency(netEarnings) : '৳ ****'}
@@ -141,6 +142,7 @@ export default function DashboardPage() {
         opts={{
           loop: true,
         }}
+        plugins={sliderImages?.map(image => Autoplay({ delay: (image.autoplayDelay || 5) * 1000 })) || []}
         className="w-full"
       >
         <CarouselContent>
@@ -174,7 +176,7 @@ export default function DashboardPage() {
         <CarouselNext className="absolute right-4 top-1/2 -translate-y-1/2 text-white bg-black/30 hover-bg-black/50 border-none" />
       </Carousel>
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Link href="/all-entries" className="transform transition-transform duration-200 hover:scale-105 group">
           <Card className="transition-colors group-hover:border-primary">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -186,6 +188,22 @@ export default function DashboardPage() {
                   <div className="text-2xl font-bold">{totalProduction.toLocaleString('bn-BD')} পিস</div>
               )}
                <p className="text-xs text-muted-foreground">এখন পর্যন্ত মোট কাজ</p>
+            </CardContent>
+          </Card>
+        </Link>
+        <Link href="/all-entries" className="transform transition-transform duration-200 hover:scale-105 group">
+          <Card className="transition-colors group-hover:border-primary">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">মোট আয়</CardTitle>
+              <CircleDollarSign className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              {isLoadingAllEntries ? <Skeleton className="h-7 w-28" /> : (
+                  <div className="text-2xl font-bold">
+                  {formatCurrency(totalEarnings)}
+                  </div>
+              )}
+               <p className="text-xs text-muted-foreground">এখন পর্যন্ত মোট আয়</p>
             </CardContent>
           </Card>
         </Link>
@@ -208,7 +226,7 @@ export default function DashboardPage() {
         <Link href="/advances" className="transform transition-transform duration-200 hover:scale-105 group">
           <Card className="transition-colors group-hover:border-primary">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">মোট অগ্রিম</CardTitle>
+              <CardTitle className="text-sm font-medium">মোট বকেয়া অগ্রিম</CardTitle>
               <TakaIcon className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>

@@ -11,7 +11,7 @@ import {
 } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useDoc, useFirestore, useMemoFirebase, useCollection } from '@/firebase';
-import { Briefcase, Calendar, Phone, Scissors, Wallet2 } from 'lucide-react';
+import { Briefcase, Calendar, Phone, Scissors, Wallet2, CircleDollarSign } from 'lucide-react';
 import { TakaIcon } from '@/components/icons';
 import { Separator } from '@/components/ui/separator';
 import { doc, collection, query } from 'firebase/firestore';
@@ -70,6 +70,11 @@ export default function WorkerProfilePage() {
   const totalProduction = useMemo(() => {
     if (!productionEntries) return 0;
     return productionEntries.reduce((sum, entry) => sum + (entry.pieceCount || 0), 0);
+  }, [productionEntries]);
+  
+  const totalEarnings = useMemo(() => {
+    if (!productionEntries) return 0;
+    return productionEntries.reduce((sum, entry) => sum + (entry.total || 0), 0);
   }, [productionEntries]);
 
   const totalExpenses = useMemo(() => {
@@ -153,9 +158,10 @@ export default function WorkerProfilePage() {
           <CardHeader>
               <CardTitle>কাজের সারসংক্ষেপ</CardTitle>
           </CardHeader>
-          <CardContent className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <CardContent className="grid grid-cols-1 md:grid-cols-4 gap-4">
                 {isLoadingStats ? (
                   <>
+                    <Skeleton className='h-24' />
                     <Skeleton className='h-24' />
                     <Skeleton className='h-24' />
                     <Skeleton className='h-24' />
@@ -166,6 +172,11 @@ export default function WorkerProfilePage() {
                         icon={<Scissors className="h-8 w-8 text-primary" />}
                         label="মোট সেলাই"
                         value={`${totalProduction.toLocaleString('bn-BD')} পিস`}
+                    />
+                    <StatCard 
+                        icon={<CircleDollarSign className="h-8 w-8 text-primary" />}
+                        label="মোট আয়"
+                        value={formatCurrency(totalEarnings)}
                     />
                     <StatCard 
                         icon={<Wallet2 className="h-8 w-8 text-primary" />}
