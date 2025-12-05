@@ -88,6 +88,12 @@ const nextConfig: NextConfig = {
         hostname: 'menswell.stapler.studio',
         port: '',
         pathname: '/**',
+      },
+      {
+        protocol: 'https',
+        hostname: '*.fbcdn.net',
+        port: '',
+        pathname: '/**',
       }
     ],
   },
