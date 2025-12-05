@@ -1,7 +1,8 @@
 
 'use client';
 
-import React, { useCallback } from 'react';
+import React, { useCallback, useMemo, useEffect } from 'react';
+import { useSearchParams } from 'next/navigation';
 import {
   Card,
   CardContent,
@@ -19,9 +20,9 @@ import {
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { MoreHorizontal, PlusCircle } from 'lucide-react';
+import { MoreHorizontal, PlusCircle, User } from 'lucide-react';
 import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
-import { collection, query, getDocs, orderBy } from 'firebase/firestore';
+import { collection, query, getDocs, orderBy, where } from 'firebase/firestore';
 import type { Worker, ProductionEntry as ProductionEntryType } from '@/lib/types';
 import { AddProductionEntryDialog } from '@/components/admin/AddProductionEntryDialog';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -36,15 +37,28 @@ const formatCurrency = (amount: number) =>
 
 export default function ProductionPage() {
   const firestore = useFirestore();
+  const searchParams = useSearchParams();
+  const workerIdFromQuery = searchParams.get('workerId');
+
   const [isDialogOpen, setIsDialogOpen] = React.useState(false);
   const [productionEntries, setProductionEntries] = React.useState<ProductionEntryType[]>([]);
   const [isLoading, setIsLoading] = React.useState(true);
+  const [filteredWorker, setFilteredWorker] = React.useState<Worker | null>(null);
 
   const workersQuery = useMemoFirebase(
     () => (firestore ? query(collection(firestore, 'workers'), orderBy('name')) : null),
     [firestore]
   );
   const { data: workers } = useCollection<Worker>(workersQuery);
+  
+  useEffect(() => {
+      if (workerIdFromQuery && workers) {
+          const worker = workers.find(w => w.id === workerIdFromQuery);
+          setFilteredWorker(worker || null);
+      } else {
+          setFilteredWorker(null);
+      }
+  }, [workerIdFromQuery, workers]);
 
   const fetchProductionEntries = useCallback(async () => {
     if (!firestore || !workers) {
@@ -55,7 +69,9 @@ export default function ProductionPage() {
     setIsLoading(true);
     try {
       const allEntries: ProductionEntryType[] = [];
-      for (const worker of workers) {
+      const workersToFetch = workerIdFromQuery ? workers.filter(w => w.id === workerIdFromQuery) : workers;
+
+      for (const worker of workersToFetch) {
         const entriesQuery = query(collection(firestore, 'workers', worker.id, 'productionEntries'));
         const querySnapshot = await getDocs(entriesQuery);
         querySnapshot.forEach(doc => {
@@ -73,7 +89,7 @@ export default function ProductionPage() {
     } finally {
       setIsLoading(false);
     }
-  }, [firestore, workers]);
+  }, [firestore, workers, workerIdFromQuery]);
 
 
   React.useEffect(() => {
@@ -92,11 +108,16 @@ export default function ProductionPage() {
         onEntryAdded={handleEntryAdded}
       />
       <Card>
-        <CardHeader className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 p-4 md:p-6">
+        <CardHeader className="flex flex-col md:flex-row md:items-start md:justify-between gap-4 p-4 md:p-6">
           <div>
-            <CardTitle>উৎপাদন এন্ট্রি</CardTitle>
+            <CardTitle className='flex items-center gap-2'>
+                {filteredWorker && <User className="h-5 w-5 text-muted-foreground" />}
+                {filteredWorker ? `শ্রমিক: ${filteredWorker.name}` : 'উৎপাদন এন্ট্রি'}
+            </CardTitle>
             <CardDescription className="mt-1">
-              সকল কর্মীর কাজের হিসাব দেখুন এবং নতুন এন্ট্রি যোগ করুন।
+              {filteredWorker 
+                ? `${filteredWorker.name}-এর সকল কাজের হিসাব দেখুন।`
+                : 'সকল কর্মীর কাজের হিসাব দেখুন এবং নতুন এন্ট্রি যোগ করুন।'}
             </CardDescription>
           </div>
           <Button onClick={() => setIsDialogOpen(true)} className="w-full md:w-auto" size="sm">
@@ -109,7 +130,7 @@ export default function ProductionPage() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>কর্মী</TableHead>
+                  {!workerIdFromQuery && <TableHead>কর্মী</TableHead>}
                   <TableHead>তারিখ</TableHead>
                   <TableHead>ক্যাটাগরি</TableHead>
                   <TableHead className="text-center">পিস</TableHead>
@@ -122,7 +143,7 @@ export default function ProductionPage() {
                 {isLoading && (
                   Array.from({ length: 5 }).map((_, i) => (
                     <TableRow key={i}>
-                      <TableCell><Skeleton className="h-5 w-24" /></TableCell>
+                       {!workerIdFromQuery && <TableCell><Skeleton className="h-5 w-24" /></TableCell>}
                       <TableCell><Skeleton className="h-5 w-20" /></TableCell>
                       <TableCell><Skeleton className="h-6 w-24" /></TableCell>
                       <TableCell className="text-center"><Skeleton className="h-5 w-10 mx-auto" /></TableCell>
@@ -141,7 +162,7 @@ export default function ProductionPage() {
                 )}
                 {!isLoading && productionEntries.map((entry) => (
                     <TableRow key={entry.id}>
-                      <TableCell className="font-medium">{entry.workerName}</TableCell>
+                      {!workerIdFromQuery && <TableCell className="font-medium">{entry.workerName}</TableCell>}
                       <TableCell>{new Date(entry.date).toLocaleDateString('bn-BD')}</TableCell>
                       <TableCell>
                           <Badge variant="outline">{entry.categoryName}</Badge>

@@ -172,28 +172,28 @@ export default function WorkerProfilePage() {
                   </>
                 ) : (
                   <>
-                    <Link href="/admin/production" className="transform transition-transform duration-200 hover:scale-105 group">
+                    <Link href={`/admin/production?workerId=${workerId}`} className="transform transition-transform duration-200 hover:scale-105 group">
                         <StatCard 
                             icon={<Scissors className="h-6 w-6 text-muted-foreground" />}
                             label="মোট সেলাই"
                             value={`${totalProduction.toLocaleString('bn-BD')} পিস`}
                         />
                     </Link>
-                    <Link href="/admin/production" className="transform transition-transform duration-200 hover:scale-105 group">
+                    <Link href={`/admin/production?workerId=${workerId}`} className="transform transition-transform duration-200 hover:scale-105 group">
                         <StatCard 
                             icon={<CircleDollarSign className="h-6 w-6 text-muted-foreground" />}
                             label="মোট আয়"
                             value={formatCurrency(totalEarnings)}
                         />
                     </Link>
-                    <Link href="/admin/worker-expenses" className="transform transition-transform duration-200 hover:scale-105 group">
+                    <Link href={`/admin/worker-expenses?workerId=${workerId}`} className="transform transition-transform duration-200 hover:scale-105 group">
                         <StatCard 
                             icon={<Wallet2 className="h-6 w-6 text-muted-foreground" />}
                             label="মোট খরচ"
                             value={formatCurrency(totalExpenses)}
                         />
                     </Link>
-                    <Link href="/admin/advance-payments" className="transform transition-transform duration-200 hover:scale-105 group">
+                    <Link href={`/admin/advance-payments?workerId=${workerId}`} className="transform transition-transform duration-200 hover:scale-105 group">
                         <StatCard 
                             icon={<TakaIcon className="h-6 w-6 text-muted-foreground" />}
                             label="মোট বকেয়া অগ্রিম"

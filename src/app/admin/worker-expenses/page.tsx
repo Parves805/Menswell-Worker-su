@@ -2,6 +2,7 @@
 'use client';
 
 import React, { useState, useMemo, useCallback, useEffect } from 'react';
+import { useSearchParams } from 'next/navigation';
 import {
   Card,
   CardContent,
@@ -22,7 +23,7 @@ import { useCollection, useFirestore, useMemoFirebase, addDocumentNonBlocking, u
 import { collection, query, orderBy, getDocs, doc } from 'firebase/firestore';
 import type { Worker, WorkerExpense } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Wallet, PlusCircle, MoreHorizontal, Edit, Trash2 } from 'lucide-react';
+import { Wallet, PlusCircle, MoreHorizontal, Edit, Trash2, User } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -224,16 +225,29 @@ function AddWorkerExpenseDialog({
 
 export default function WorkerExpensesPage() {
   const firestore = useFirestore();
+  const searchParams = useSearchParams();
+  const workerIdFromQuery = searchParams.get('workerId');
+
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [expenseToEdit, setExpenseToEdit] = useState<WorkerExpense | null>(null);
   const [expenseToDelete, setExpenseToDelete] = useState<WorkerExpense | null>(null);
   const [allExpenses, setAllExpenses] = useState<WorkerExpense[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [filteredWorker, setFilteredWorker] = useState<Worker | null>(null);
   const { toast } = useToast();
 
   const { data: workers, isLoading: isLoadingWorkers } = useCollection<Worker>(
     useMemoFirebase(() => firestore ? query(collection(firestore, 'workers'), orderBy('name')) : null, [firestore])
   );
+
+  useEffect(() => {
+    if (workerIdFromQuery && workers) {
+        const worker = workers.find(w => w.id === workerIdFromQuery);
+        setFilteredWorker(worker || null);
+    } else {
+        setFilteredWorker(null);
+    }
+  }, [workerIdFromQuery, workers]);
 
   const fetchExpenses = useCallback(async () => {
     if (!firestore || !workers) {
@@ -243,7 +257,9 @@ export default function WorkerExpensesPage() {
     setIsLoading(true);
     try {
       const expenses: WorkerExpense[] = [];
-      for (const worker of workers) {
+      const workersToFetch = workerIdFromQuery ? workers.filter(w => w.id === workerIdFromQuery) : workers;
+
+      for (const worker of workersToFetch) {
         const expenseQuery = query(
           collection(firestore, 'workers', worker.id, 'expenses'),
           orderBy('date', 'desc')
@@ -259,7 +275,7 @@ export default function WorkerExpensesPage() {
     } finally {
       setIsLoading(false);
     }
-  }, [firestore, workers]);
+  }, [firestore, workers, workerIdFromQuery]);
 
   useEffect(() => {
     if (workers) {
@@ -322,10 +338,18 @@ export default function WorkerExpensesPage() {
         </AlertDialogContent>
       </AlertDialog>
       <Card>
-        <CardHeader className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 p-4 md:p-6">
+        <CardHeader className="flex flex-col md:flex-row md:items-start md:justify-between gap-4 p-4 md:p-6">
           <div>
-            <CardTitle className="flex items-center gap-2"><Wallet /> কর্মীর খরচ</CardTitle>
-            <CardDescription className="mt-1">কর্মীদের প্রদান করা সমস্ত খরচের হিসাব দেখুন এবং নতুন খরচ যোগ করুন।</CardDescription>
+            <CardTitle className="flex items-center gap-2">
+                <Wallet /> 
+                {filteredWorker ? `শ্রমিক: ${filteredWorker.name}` : 'কর্মীর খরচ'}
+            </CardTitle>
+            <CardDescription className="mt-1">
+                {filteredWorker 
+                    ? `${filteredWorker.name}-কে প্রদান করা সমস্ত খরচের হিসাব দেখুন।`
+                    : 'কর্মীদের প্রদান করা সমস্ত খরচের হিসাব দেখুন এবং নতুন খরচ যোগ করুন।'
+                }
+            </CardDescription>
           </div>
           <Button onClick={() => handleOpenDialog()} className="w-full md:w-auto" size="sm">
             <PlusCircle className="mr-2 h-4 w-4" />
@@ -338,7 +362,7 @@ export default function WorkerExpensesPage() {
               <TableHeader>
                 <TableRow>
                   <TableHead>তারিখ</TableHead>
-                  <TableHead>কর্মী</TableHead>
+                  {!workerIdFromQuery && <TableHead>কর্মী</TableHead>}
                   <TableHead>বিবরণ</TableHead>
                   <TableHead className="text-right">পরিমাণ</TableHead>
                   <TableHead className="text-right w-[100px]">কার্যকলাপ</TableHead>
@@ -348,7 +372,7 @@ export default function WorkerExpensesPage() {
                 {(isLoading || isLoadingWorkers) && Array.from({ length: 5 }).map((_, i) => (
                   <TableRow key={i}>
                     <TableCell><Skeleton className="h-5 w-24" /></TableCell>
-                    <TableCell><Skeleton className="h-5 w-32" /></TableCell>
+                    {!workerIdFromQuery && <TableCell><Skeleton className="h-5 w-32" /></TableCell>}
                     <TableCell><Skeleton className="h-5 w-40" /></TableCell>
                     <TableCell className="text-right"><Skeleton className="h-5 w-20 ml-auto" /></TableCell>
                     <TableCell className="text-right"><Skeleton className="h-8 w-8 ml-auto" /></TableCell>
@@ -360,15 +384,17 @@ export default function WorkerExpensesPage() {
                     return (
                       <TableRow key={expense.id}>
                         <TableCell className="font-medium">{new Date(expense.date).toLocaleDateString('bn-BD')}</TableCell>
-                        <TableCell>
-                          <div className="flex items-center gap-3">
-                            <Avatar className="h-9 w-9 hidden sm:flex">
-                              <AvatarImage src={worker?.photo} alt={expense.workerName} />
-                              <AvatarFallback>{expense.workerName.charAt(0)}</AvatarFallback>
-                            </Avatar>
-                            <span className="font-medium">{expense.workerName}</span>
-                          </div>
-                        </TableCell>
+                        {!workerIdFromQuery && (
+                           <TableCell>
+                            <div className="flex items-center gap-3">
+                                <Avatar className="h-9 w-9 hidden sm:flex">
+                                <AvatarImage src={worker?.photo} alt={expense.workerName} />
+                                <AvatarFallback>{expense.workerName.charAt(0)}</AvatarFallback>
+                                </Avatar>
+                                <span className="font-medium">{expense.workerName}</span>
+                            </div>
+                           </TableCell>
+                        )}
                         <TableCell>{expense.description}</TableCell>
                         <TableCell className="text-right">{formatCurrency(expense.amount)}</TableCell>
                         <TableCell className="text-right">
@@ -408,7 +434,7 @@ export default function WorkerExpensesPage() {
                 )}
                 {!isLoading && allExpenses.length > 0 && (
                   <TableRow className="font-bold bg-muted">
-                    <TableCell colSpan={3} className="text-right">সর্বমোট</TableCell>
+                    <TableCell colSpan={workerIdFromQuery ? 2 : 3} className="text-right">সর্বমোট</TableCell>
                     <TableCell className="text-right text-primary" colSpan={2}>{formatCurrency(grandTotal)}</TableCell>
                   </TableRow>
                 )}
